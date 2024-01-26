@@ -13,14 +13,32 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 public class HomeController {
 
-
     private final UserRepository userRepository;
+    private final EmailSenderService emailSenderService;
 
-
-    public HomeController(UserRepository userRepository) {
+    public HomeController(UserRepository userRepository, EmailSenderService emailSenderService) {
         this.userRepository = userRepository;
+        this.emailSenderService = emailSenderService;
     }
 
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestBody UserDto user) throws URISyntaxException {
+        User saved = userRepository.save(new User(user.getUsername(), user.getPhoneNumber(), user.getEmail()));
+        System.out.println(saved);
+
+        // Send welcome email
+        sendWelcomeEmail(saved);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+
+    private void sendWelcomeEmail(User user) {
+        String subject = "Leda Designs";
+        String body = "Dear " + user.getUsername() + ",\n\nWelcome to Leda Designs";
+
+        emailSenderService.sendEmail(user.getEmail(), subject, body);
+    }
 
     @GetMapping
     public ResponseEntity<List<User>> getUser() {
@@ -32,12 +50,12 @@ public class HomeController {
         }
     }
 
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody UserDto user) throws URISyntaxException {
-        User saved = userRepository.save(new User(user.username(), user.phoneNumber()));
-        System.out.println(saved);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-    }
+//    @PostMapping
+//    public ResponseEntity<User> createUser(@RequestBody UserDto user) throws URISyntaxException {
+//        User saved = userRepository.save(new User(user.username(), user.phoneNumber()));
+//        System.out.println(saved);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+//    }
 
     @PutMapping("/{userId}")
     public ResponseEntity<String> updateUser(@PathVariable UUID userId, @RequestBody User user) {
